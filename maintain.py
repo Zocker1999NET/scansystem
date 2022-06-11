@@ -21,16 +21,22 @@ warn = partial(print, file=sys.stderr)
 # === Configuration
 
 
+# name of directory to hold index
 INDEX_DIR = ".index"
+# name of directory where new pages will be stored
 DEFAULT_CATEGORY = "_toSort"
+# languages to apply OCR in
 OCR_LANGS = [
     "deu",
     "eng",
 ]
-DEFAULT_SCAN_SOURCE = "ADF Duplex"
-ALTERNATE_SCAN_SOURCE = "Flatbed"
+# Scan sources to use, depend on scanner, find out with "scanimge -L"
+ADF_SCAN_SOURCE = "ADF Duplex"
+FLATBED_SCAN_SOURCE = "Flatbed"
+# Minimum width / length of IDs in index direcory
 MIN_NUM_WIDTH = 6 # only used for INDEX_DIR files
 
+# How many pages are displayed as context
 ID_AROUND_RANGE = 10
 
 
@@ -591,7 +597,7 @@ def cmd_scan(args, scans):
     scans = list(scans)
     cmd = [
         "scanimage",
-        "--source", ALTERNATE_SCAN_SOURCE if args.flatbed else DEFAULT_SCAN_SOURCE,
+        "--source", FLATBED_SCAN_SOURCE if args.flatbed else ADF_SCAN_SOURCE,
         "--batch",
         "--batch-start", str(args.force_next_id or next_id(scans)),
         "--batch-print",
