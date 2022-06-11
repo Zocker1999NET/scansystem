@@ -49,6 +49,7 @@ I know about these limitiations and I (or you) might resolve these in the future
 - Its configuration is "hard-coded" in the script making updating harder.
 - The index will not be maintained automatically.
 - The default configuration reflects my own and maybe are not sane defaults.
+- It uses the current directory to determine the location of your documents. If executed from another directory, it might access other files and store scans elsewhere.
 
 
 ## How It Works (TL;DR)
