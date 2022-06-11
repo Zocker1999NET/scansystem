@@ -17,6 +17,10 @@ from typing import Callable, Iterable, List, Mapping
 
 warn = partial(print, file=sys.stderr)
 
+
+# === Configuration
+
+
 INDEX_DIR = ".index"
 DEFAULT_CATEGORY = "_toSort"
 OCR_LANGS = [
@@ -26,6 +30,71 @@ OCR_LANGS = [
 DEFAULT_SCAN_SOURCE = "ADF Duplex"
 ALTERNATE_SCAN_SOURCE = "Flatbed"
 MIN_NUM_WIDTH = 6 # only used for INDEX_DIR files
+
+ID_AROUND_RANGE = 10
+
+
+# === Patterns
+
+
+SCAN_SUFFIXES = [ # Regexes
+    "jpe?g",
+    "pdf",
+    "png",
+]
+
+ID_REGEX = re.compile(r"""^
+    (
+        (?P<digital>d(igital)?) # no physical original
+        |
+        (
+            (?P<id_simple>\d+) # simple id
+            |
+            (?P<id_following>\d+)\+ # id and following id
+            |
+            (?P<id_following_twice>\d+)\+\+ # id and following 3 ids (this and following document with each 2 sides)
+            |
+            (?P<id_range_begin>\d+)-(?P<id_range_end>\d+) # id range
+        )(?P<around>\#)?
+    )
+$""", re.VERBOSE)
+
+SCAN_REGEX = re.compile(r"""^
+    ( # Date
+        (?P<date>\d{4}-\d{2}-\d{2})_
+    )?
+    # automatic prefix of scanimage
+    (out)?
+    # scan id
+    (?P<scan_id>
+        """ + ID_REGEX.pattern[1:-1] + r"""
+    )
+    ( # Description (optional)
+        _(?P<description>.*)
+    )?
+    # Suffix
+    \.(""" + "|".join(SCAN_SUFFIXES) + r""")
+$""", re.VERBOSE)
+SCAN_WARN_REGEX = re.compile(r"\.(" + "|".join(SCAN_SUFFIXES) + r")$")
+
+NUMBER_REGEX = re.compile(r"^\d+$")
+CONTENT_SPLIT_REGEX = re.compile(r"[\W]")
+
+DATE_REGEX = re.compile(r"(\d{2,4}-\d{1,2}-\d{1,2}|\d{1,2}\.\d{1,2}\.\d{2,4}|\d{1,2}\.\s+[a-zA-Z]+\s+\d{2,4})")
+DATE_FORMATS = [  # date.strptime compatible
+    "%Y-%m-%d",
+    "%y-%m-%d",
+    "%d.%m.%Y",
+    "%d.%m.%y",
+    "%d. %B %Y",
+    "%d. %B %y",
+    "%d. %b %Y",
+    "%d. %b %y",
+]
+
+
+# === Code
+
 
 def build_args(args: Iterable) -> str:
     return " ".join((shlex.quote(str(e)) for e in args))
@@ -54,22 +123,6 @@ def rlinput(prompt, prefill=None, suggestions=[]):
     finally:
         readline.set_startup_hook()
 
-ID_REGEX = re.compile(r"""^
-    (
-        (?P<digital>d(igital)?) # no physical original
-        |
-        (
-            (?P<id_simple>\d+) # simple id
-            |
-            (?P<id_following>\d+)\+ # id and following id
-            |
-            (?P<id_following_twice>\d+)\+\+ # id and following 3 ids (this and following document with each 2 sides)
-            |
-            (?P<id_range_begin>\d+)-(?P<id_range_end>\d+) # id range
-        )(?P<around>\#)?
-    )
-$""", re.VERBOSE)
-ID_AROUND_RANGE = 10
 
 @dataclass(eq=True, order=True, frozen=True)
 class IdRange:
@@ -155,44 +208,6 @@ class IdRange:
         return self.fancy
 
 
-SCAN_SUFFIXES = [ # Regexes
-    "jpe?g",
-    "pdf",
-    "png",
-]
-
-SCAN_REGEX = re.compile(r"""^
-    ( # Date
-        (?P<date>\d{4}-\d{2}-\d{2})_
-    )?
-    # automatic prefix of scanimage
-    (out)?
-    # scan id
-    (?P<scan_id>
-        """ + ID_REGEX.pattern[1:-1] + r"""
-    )
-    ( # Description (optional)
-        _(?P<description>.*)
-    )?
-    # Suffix
-    \.(""" + "|".join(SCAN_SUFFIXES) + r""")
-$""", re.VERBOSE)
-SCAN_WARN_REGEX = re.compile(r"\.(" + "|".join(SCAN_SUFFIXES) + r")$")
-
-NUMBER_REGEX = re.compile(r"^\d+$")
-CONTENT_SPLIT_REGEX = re.compile(r"[\W]")
-
-DATE_REGEX = re.compile(r"(\d{2,4}-\d{1,2}-\d{1,2}|\d{1,2}\.\d{1,2}\.\d{2,4}|\d{1,2}\.\s+[a-zA-Z]+\s+\d{2,4})")
-DATE_FORMATS = [
-    "%Y-%m-%d",
-    "%y-%m-%d",
-    "%d.%m.%Y",
-    "%d.%m.%y",
-    "%d. %B %Y",
-    "%d. %B %y",
-    "%d. %b %Y",
-    "%d. %b %y",
-]
 def interpret_date(text: str) -> datetime:
     for date_format in DATE_FORMATS:
         try:
@@ -200,12 +215,15 @@ def interpret_date(text: str) -> datetime:
         except ValueError:
             continue
     return None
+
 def format_date(date: datetime) -> str:
     return date.strftime(DATE_FORMATS[0])
+
 def avg(dates: list[datetime]) -> datetime:
     m = min(dates)
     s = sum((date - m for date in dates), start=timedelta())
     return m + (s / len(dates))
+
 
 @dataclass
 class ScanFile:
@@ -333,6 +351,7 @@ class ScanFile:
     def __eq__(self, other):
         return self.path == other.path
 
+
 SCAN_FORMATS: dict[Callable[[ScanFile], str]] = {
     "content": lambda scan: scan.text_content,
     "date": lambda scan: scan.date_from_content,
@@ -404,6 +423,7 @@ def extract_dates(scans: List[ScanFile]) -> List[str]:
         for date in scan.all_dates_from_content:
             dates[format_date(date)] = None
     return list(dates)
+
 
 # args dependent
 
