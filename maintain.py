@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Mapping
 
 warn = partial(print, file=sys.stderr)
 
@@ -396,7 +396,7 @@ def lookup_scans(scans, *id_ranges):
 
 def extract_dates(scans: List[ScanFile]) -> List[str]:
     # used dict instead of set to gurantee input order
-    dates: Mapping[str, NoneType] = dict()
+    dates: Mapping[str, None] = dict()
     for scan in scans:
         if scan.date:
             dates[scan.date] = None
