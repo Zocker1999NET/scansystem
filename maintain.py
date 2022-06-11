@@ -30,6 +30,8 @@ OCR_LANGS = [
     "deu",
     "eng",
 ]
+# Declare which scan source to use by default
+USE_ADF_BY_DEFAULT = True
 # Scan sources to use, depend on scanner, find out with "scanimge -L"
 ADF_SCAN_SOURCE = "ADF Duplex"
 FLATBED_SCAN_SOURCE = "Flatbed"
@@ -595,9 +597,12 @@ def cmd_rebuild_index(args, scans: Iterable[ScanFile]):
 
 def cmd_scan(args, scans):
     scans = list(scans)
+    scan_source = FLATBED_SCAN_SOURCE if args.flatbed \
+        else ADF_SCAN_SOURCE if args.adf or USE_ADF_BY_DEFAULT \
+        else FLATBED_SCAN_SOURCE
     cmd = [
         "scanimage",
-        "--source", FLATBED_SCAN_SOURCE if args.flatbed else ADF_SCAN_SOURCE,
+        "--source", scan_source,
         "--batch",
         "--batch-start", str(args.force_next_id or next_id(scans)),
         "--batch-print",
@@ -642,6 +647,7 @@ def main():
     parser.add_argument("-s", "--dry-run", "--simulate", action="store_true")
     parser.add_argument("--force-next-id", required=False)
     parser.add_argument("-k", "--keep", action="store_true")
+    parser.add_argument("-a", "--adf", action="store_true")
     parser.add_argument("-F", "--flatbed", action="store_true")
     parser.add_argument("-f", "--format", choices=list(SCAN_FORMATS), default="id-date-title")
     parser.add_argument("--id", "--ids", required=False)
