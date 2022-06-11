@@ -41,6 +41,9 @@ MIN_NUM_WIDTH = 6 # only used for INDEX_DIR files
 # How many pages are displayed as context
 ID_AROUND_RANGE = 10
 
+# The PDF Viewer you want to open (as list of arguments)
+PDF_VIEWER_ARGS = ["zathura", "--mode=fullscreen"]
+
 
 # === Patterns
 
@@ -536,7 +539,7 @@ def cmd_merge(args, scans):
     with tempfile.NamedTemporaryFile() as fp:
         subprocess.run(build_cmd(fp.name), check=True, shell=True)
         if args.view:
-            pdf_viewer = subprocess.Popen(["zathura", "--mode=fullscreen", fp.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            pdf_viewer = subprocess.Popen(PDF_VIEWER_ARGS + [fp.name], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         # get existing parameters
         doc_dates = [format_date(datetime.now())] + extract_dates(found)
         doc_dates = [] + doc_dates
